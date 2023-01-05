@@ -66,7 +66,7 @@ client.on('messageCreate', message => {
     pattern.length > 7
   ) {
     // Si pas bon, on affiche l'erreur et les règles
-    message.reply(`Pattern Rules:\n- 7 chars long for now !\n- First char must be "R".\n- Second char must be uppercase letter or digit 9.\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".`);
+    message.reply(`Pattern Rules:\n- 7 chars long for now !\n- First char must be "R".\n- Second char must be uppercase letter (not Z) or digit 9.\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".`);
     // Supprime l'élément traité de la file d'attente
     queue.shift();
     // Démarre la prochaine itération de traitement de la file d'attente
@@ -119,6 +119,9 @@ client.on('messageCreate', message => {
 // Fonction de vérification de la file d'attente
 function checkQueue() {
   // Vérifie si la file d'attente est vide
+  if (queue.length === 0 && !queue.isProcessing) {
+    interruptAndKillProcess();
+  }
   if (queue.length === 0 || queue.isProcessing) {
     return;
   }
@@ -145,24 +148,21 @@ function processQueue() {
   const userPattern = item.pattern;
   const user = message.author;
 
-  // Lancement d'oclvanitygen, timeout 600000 = 10min
-  exec(`cmd /C "oclvanitygen.exe -C RVN -1 -F compressed ${userPattern}"`, { timeout: 200000000 }, (error, stdout) => {    
+  // Lancement d'oclvanitygen
+  exec(`oclvanitygen.exe -C RVN -D 0:0 -D 0:1 -F compressed ${userPattern}`, (error, stdout) => {    
     if (error) {
-      let lignes = error.split('\n');
+      let lignes = error.toString().split('\n');
       for (let s = 0; s < lignes.length; s++) {
-        let ligne = lines[s];
+        let ligne = lignes[s];
         if (ligne.includes("not possible")) {
           message.reply(`Research aborted\n${ligne}`);
-          console.error(`Research for ${userPattern} aborted\n${ligne}`);
-
+          console.log(`Research for ${userPattern} aborted\n${ligne}`);
         }
-        message.reply(`Research for ${userPattern} aborted`);
-        console.error(`Research for ${userPattern} aborted`);
       }
-      console.error(error);
+      //console.log(error);
       // Supprime l'élément traité de la file d'attente
       queue.shift();
-      interruptAndKillProcess()
+      //interruptAndKillProcess()
       // Démarre la prochaine itération de traitement de la file d'attente
       processQueue();
       return;
