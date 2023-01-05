@@ -19,19 +19,19 @@ queue.isProcessing = false;
 // Creation nouvelle instance client
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers] });
 
-// Once Only, Quand client prt affiche message
+// Once Only, log console quand bot ready
 client.once(Events.ClientReady, () => {
   console.log(`Ready! Logged in as ${client.user.tag}`);
 });
 
-// Fonction qui interrompt et tue le processus "oclvanitygen"
+// Fonction qui kill le process "oclvanitygen"
 function interruptAndKillProcess() {
   exec('tasklist /FI "IMAGENAME eq oclvanitygen.exe"', (err, stdout, stderr) => {
     if (err) {
       console.error(`Error while checking for process: ${err}`);
       return;
     }
-    // Si le processus "oclvanitygen" existe, arrêtez-le
+    // Si le processus "oclvanitygen" existe, kill
     if (stdout.includes('oclvanitygen.exe')) {
       exec('taskkill /F /IM oclvanitygen.exe', (err, stdout, stderr) => {
         if (err) {
@@ -44,10 +44,8 @@ function interruptAndKillProcess() {
   });
 }
 
-
 // Démarre la vérification de la file d'attente toutes les 10 secondes
 setInterval(checkQueue, 10000);
-
 
 // Quand un message est envoyé sur le serveur Discord
 client.on('messageCreate', message => {
@@ -60,11 +58,11 @@ client.on('messageCreate', message => {
     const pattern = message.content.slice(8); // Récupère la chaîne de caractères après "/vanity"
     // Vérifie que le pattern respecte les critères définis
   if (
-    !/^R[A-Z9][123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{0,6}$/.test(pattern) ||
+    !/^R[9ABCDEFGHJKLMNPQRSTUVWXY][123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{0,6}$/.test(pattern) ||
     pattern.length > 7
   ) {
     // Si pas bon, on affiche l'erreur et les règles
-    message.reply(`Pattern Rules:\n- 7 chars long for now !\n- First char must be "R".\n- Second char must be uppercase letter (not Z) or digit 9.\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".`);
+    message.reply(`Pattern Rules:\n- 7 chars long for now !\n- First char must be "R".\n- Second char alphabet: 9ABCDEFGHJKLMNPQRSTUVWXY.\n- Third char -ToDo-\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".`);
     // Supprime l'élément traité de la file d'attente
     queue.shift();
     // Démarre la prochaine itération de traitement de la file d'attente
@@ -90,6 +88,7 @@ client.on('messageCreate', message => {
       message.reply(`The queue is empty.`);
     }
   } 
+  // Commande pour supprimer son dernier job de la file d'attente
   else if (message.content.toLowerCase().startsWith('/vcancel')) {
     // Supprime la dernière demande de l'utilisateur de la file d'attente
     let entryRemoved = false;
@@ -105,6 +104,7 @@ client.on('messageCreate', message => {
       message.reply(`No request from you in queue`);
     }
   } 
+  // Commande pour voir le job en cours
   else if (message.content.toLowerCase().startsWith('/vcurrent')) {
     if (queue.length > 0) {
       message.reply(`The current pattern being searched is: ${queue[0].pattern} by ${queue[0].message.author}`);
@@ -116,10 +116,11 @@ client.on('messageCreate', message => {
 
 // Fonction de vérification de la file d'attente
 function checkQueue() {
-  // Vérifie si la file d'attente est vide
+  // Vérifie qu'un process ne tourne pas dans le vide
   if (queue.length === 0 && !queue.isProcessing) {
     interruptAndKillProcess();
   }
+  // Vérifie si la file d'attente est vide
   if (queue.length === 0 || queue.isProcessing) {
     return;
   }
@@ -152,15 +153,13 @@ function processQueue() {
       let lignes = error.toString().split('\n');
       for (let s = 0; s < lignes.length; s++) {
         let ligne = lignes[s];
-        if (ligne.includes("not possible")) {
-          message.reply(`Research aborted\n${ligne}`);
+        if (ligne.includes("not possible") || ligne.includes("Invalid character")) {
+          message.reply(`Research aborted, oclvanitygen output:\n${ligne}`);
           console.log(`Research for ${userPattern} aborted\n${ligne}`);
         }
       }
-      //console.log(error);
       // Supprime l'élément traité de la file d'attente
       queue.shift();
-      //interruptAndKillProcess()
       // Démarre la prochaine itération de traitement de la file d'attente
       processQueue();
       return;
