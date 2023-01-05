@@ -40,8 +40,6 @@ function interruptAndKillProcess() {
         }
         console.log(`Process killed`);
       });
-    } else {
-      console.log(`Process not found`);
     }
   });
 }
