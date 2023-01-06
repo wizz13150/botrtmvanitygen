@@ -32,10 +32,27 @@ client.on('messageCreate', message => {
     // Incrémente le compteur de lancements de VanityGen
     i++;
     writeI(i);
-    // Récupère le pattern de la commande
+    // On compte le nombre de requête de l'utilisateur dans lale, quota
+    let vanityCount = 0;
+    const authorId = message.author.id;
+    for (const queuedMessage of queue) {
+      if (queuedMessage.message.author.id === authorId) {
+        vanityCount++;
+      }
+      if (vanityCount >= 10) {
+        message.reply(`Already 10 requests, fuck off. Try later ((:`)
+        break;
+      }
+    }
+    if (vanityCount >= 10) {
+      message.reply(`Already 10 requests, fuck off. Try later ((:`)
+      return;
+    }
+    // Récupère le ou les patterns de la commande
     const pattern = message.content.slice(8);
-    const words = pattern.split(' '); // Sépare le pattern en un tableau de mots en utilisant un espace comme séparateur
-    // Parcours chaque mot du tableau
+    // Sépare les patterns saisies, pas de if
+    const words = pattern.split(' '); 
+        // Parcours chaque mot du tableau
     for (const word of words) {
       // Vérifie que le mot respecte les critères définis
       if (
@@ -45,14 +62,13 @@ client.on('messageCreate', message => {
         // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
         message.reply(`Rules for each pattern:\n- 8 chars long !\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".`);
         // Supprime l'élément traité de la file d'attente
-        queue.shift();
-        return;
+      return;
       }
     }
   
   // Si okay, on génère l'addresse
   console.log(`[LOG] User ${message.author.username} searched ${pattern}`);
-  message.reply(`RTM VanityGen used ${i} times\nCurrent queue size before yours: ${queue.length}\nSearching ${pattern}... Will DM you the address and key when found`);
+  message.reply(`RTM VanityGen used ${i} times *since last bug xD\nCurrent queue size before yours: ${queue.length}\nSearching ${pattern}... Will DM you the address and key when found`);
   // Ajoute la commande à la file d'attente
   queue.push({ id: queue.length + 1, message, pattern });
   // Démarre la prochaine itération de traitement de la file d'attente
@@ -65,24 +81,26 @@ client.on('messageCreate', message => {
   return;
   }
   else if (message.content.toLowerCase().startsWith('/vqueue')) {
-    // Affiche la file d'attente à l'utilisateur
-    if (queue.length > 0) {
-      let queueString = `Current queue:\n`;
-      for (let j = 0; j < queue.length; j++) {
-        queueString += `${queue[j].id}. ${queue[j].pattern}\n`;
-      }
-      message.reply(queueString);
-    } else {
-      message.reply(`The queue is empty.`);
+    // Si la commande commence par /vqueue, affiche la file d'attente
+    let vqueueString = '';
+    // Parcours la file d'attente et crée une chaîne de caractères avec tous les éléments
+    for (const item of queue) {
+      vqueueString += `${item.id}: ${item.pattern}\n`;
     }
-  } 
+    // Si la file d'attente est vide, affiche un message approprié
+    if (vqueueString.length === 0) {
+      vqueueString = 'Queue is empty';
+    }
+    // Envoie la chaîne de caractères créée au demandeur
+    message.reply(`${vqueueString}`);
+  }
   // Commande pour supprimer son dernier job de la file d'attente
   else if (message.content.toLowerCase().startsWith('/vcancel')) {
     // Supprime la dernière demande de l'utilisateur de la file d'attente
     let entryRemoved = false;
     for (let r = queue.length - 1; r >= 0; r--) {
         if (queue[r].message.author === message.author) {
-          message.reply(`Request for ${queue[r].pattern} deleted from queue`);
+          message.reply(`Request for '${queue[r].pattern}' deleted from queue`);
           queue.splice(r, 1); // Supprime l'entrée de l'utilisateur à l'index r
           entryRemoved = true;
           break;
@@ -99,6 +117,16 @@ client.on('messageCreate', message => {
     } else {
       message.reply(`There is no current pattern being searched`);
     }
+  }
+  else if (message.content.toLowerCase().startsWith('/vquota')) {
+    let Count = 0;
+    const authorId = message.author.id;
+    for (const queuedMessage of queue) {
+      if (queuedMessage.message.author.id === authorId) {
+        Count++;
+      }    
+    } 
+    message.reply(`You have ${Count} requests in queue :\nToDo`)
   }
 });
 
@@ -121,14 +149,14 @@ function processQueue() {
   const user = message.author;
 
   // Lancement d'oclvanitygen
-  exec(`oclvanitygen.exe -C RVN -F compressed ${userPattern}`, (error, stdout) => {    
+  exec(`oclvanitygen.exe -C RVN -D 0:0 -D 0:1 -F compressed ${userPattern}`, (error, stdout) => {    
     if (error) {
       let lignes = error.toString().split('\n');
       for (let s = 0; s < lignes.length; s++) {
         let ligne = lignes[s];
         if (ligne.includes("not possible") || ligne.includes("Invalid character")) {
           message.reply(`Research aborted, oclvanitygen output:\n${ligne}`);
-          console.log(`Research for ${userPattern} aborted\n${ligne}`);
+          console.log(`Research for '${userPattern}' aborted\n${ligne}`);
         }
       }
       // Supprime l'élément traité de la file d'attente
@@ -155,14 +183,20 @@ function processQueue() {
       durationInSeconds -= 60;
     }
     /// Envoi de l'adresse et la clé privée à l'utilisateur en DM ///
-    user.send(`${output}Found in ${durationInMinutes} min ${durationInSeconds} sec`);
+    const separator = '-'.repeat(Math.floor(Math.random() * (25 - 7 + 1) + 7));
+    user.send(`${output}Found in ${durationInMinutes} min ${durationInSeconds} sec\n${separator}`);
     // Confirmation dans Discord
     message.reply(`${userPattern} found in ${durationInMinutes} min ${durationInSeconds} sec. Check your DM`)
-
     // Log console si successful
     console.log(`[LOG] User ${message.author.username} got ${userPattern} in DM :)\nFound in ${durationInMinutes} min ${durationInSeconds} sec`);
     // Supprime l'élément traité de la file d'attente
-    queue.shift();
+    queue.shift();    
+    // Décalage de la file vers le haut
+    if (queue.length > 2) {
+      for (let q = 0; q < queue.length; q++) {
+        queue[q].id = q + 1;
+      }
+    }
     // Démarre la prochaine itération de traitement de la file d'attente
     processQueue();
   });
