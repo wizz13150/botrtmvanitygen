@@ -85,7 +85,7 @@ function checkGhosts() {
   // Vérifie qu'un process ne tourne pas dans le vide
   if (queue.length === 0 && !queue.isProcessing) {
     interruptAndKillProcess();
-    interruptAndKillVanitygen()
+    interruptAndKillVanitygen();
   }
 }
 
@@ -160,7 +160,7 @@ client.on('messageCreate', message => {
         message.reply(messageToSend);
         // Ajoute la commande à la file d'attente
         queue.push({ id: queue.length + 1, message, pattern, duration: minutes });
-        interruptAndKillVanitygen()
+        interruptAndKillVanitygen();
       }
     }
   });  
@@ -212,7 +212,7 @@ client.on('messageCreate', message => {
       // Si l'utilisateur n'a pas saisi de nombre après la commande, on considère qu'il veut supprimer sa dernière requête
       numRequestsToDelete = 1;
     }
-    numRequests = numRequestsToDelete
+    numRequests = numRequestsToDelete;
     // Supprime les requêtes de l'utilisateur de la file d'attente
     var entryRemoved = false;
     var countRequests = 0;
@@ -223,7 +223,7 @@ client.on('messageCreate', message => {
           if (queue.length === 1) {
             interruptAndKillProcess();
           }
-          userpattern = queue[r].pattern
+          userpattern = queue[r].pattern;
           queue.splice(r, 1); // Supprime l'entrée de l'utilisateur à l'index r
           entryRemoved = true;
           // Log console
@@ -237,7 +237,7 @@ client.on('messageCreate', message => {
     }
     if (!entryRemoved) {
       if (humans === 1) {
-        return
+        return;
       } else {
       message.reply(`No request from you in queue`);
       }
@@ -270,11 +270,11 @@ client.on('messageCreate', message => {
     if (Count > 0) {
       const formattedList = listRequests.map(request => `${request.num}: ${request.val}`);
       message.reply(`You have ${Count} requests in queue :\n${formattedList.join('\n')}`);
-      return
+      return;
     }
     else {
       message.reply(`No request from you in queue`);
-      return
+      return;
     }
   }  
   else if (message.content.toLowerCase().startsWith('/vtest')) {
@@ -287,7 +287,7 @@ client.on('messageCreate', message => {
     ) {
       // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
       message.reply(`Rules for each pattern:\n- 2 Chars min\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
-      return
+      return;
     }
     else if (
       pattern.length > 8 || pattern.length < 2
