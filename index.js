@@ -352,8 +352,9 @@ function processQueue() {
         queue.shift();
         // Décalage de la file vers le haut
         if (queue.length >= 2) {
-          for (let q = 0; q < queue.length; q++) {
-            queue[q].id = q + 1;
+          var q = 1;
+          for (const file of queue) {
+            file.id = q;
           }
         }
         interruptAndKillProcess()
