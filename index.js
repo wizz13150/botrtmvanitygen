@@ -128,7 +128,6 @@ client.on('messageCreate', message => {
         message.reply(`Rules for each pattern:\n- 2 chars min, 8 chars max !\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
         return;
       }
-      console.log(`${word} OKAY`)
     }  
     // Si okay, on génère l'addresse
     console.log(`[LOG] User ${message.author.username} searched ${pattern}`);
