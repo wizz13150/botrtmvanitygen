@@ -1,5 +1,5 @@
 // Classes discord.js nécessaires
-const { Client, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Events, GatewayIntentBits, Partials } = require('discord.js');
 const { token } = require('./config.json');
 const { exec, spawn } = require('child_process');
 const fs = require('fs');
@@ -13,12 +13,25 @@ function writeI(i) {
 }
 
 i = readI();
-let queue = [];
-let humans = 0;
+var queue = [];
+var humans = 0;
 queue.isProcessing = false;
 
 // Creation nouvelle instance client
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers] });
+const client = new Client({
+          intents: [
+              GatewayIntentBits.DirectMessages, 
+              GatewayIntentBits.Guilds, 
+              GatewayIntentBits.GuildMessages, 
+              GatewayIntentBits.MessageContent, 
+              GatewayIntentBits.GuildMembers
+          ],
+        partials: [
+              Partials.Channel,
+              Partials.Message
+          ] 
+      });
+
 
 // Once Only, log console quand bot ready & up
 client.once(Events.ClientReady, () => {
@@ -89,7 +102,7 @@ client.on('messageCreate', message => {
     i++;
     writeI(i);
     // On compte le nombre de requêtes de l'utilisateur dans la queue, quota
-    let vanityCount = 0;
+    var vanityCount = 0;
     const authorId = message.author.id;
     for (const queuedMessage of queue) {
       if (queuedMessage.message.author.id === authorId) {
@@ -97,14 +110,14 @@ client.on('messageCreate', message => {
       }
       if (vanityCount >= 10) {
         message.reply(`Already 10 requests, fuck off. Try later ((:`)
-        break;
+        return;
       }
     }
     // Récupère le ou les patterns de la commande
     const pattern = message.content.slice(8);
     // Sépare les patterns saisies, pas de if
     const words = pattern.split(' '); 
-        // Parcours chaque mot du tableau
+    // Parcours chaque mot du tableau
     for (const word of words) {
       // Vérifie que le mot respecte les critères définis
       if (
@@ -113,20 +126,17 @@ client.on('messageCreate', message => {
       ) {
         // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
         message.reply(`Rules for each pattern:\n- 2 chars min, 8 chars max !\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
-        // Supprime l'élément traité de la file d'attente
-      return;
+        return;
       }
     }
   
   // Si okay, on génère l'addresse
   console.log(`[LOG] User ${message.author.username} searched ${pattern}`);
 
-
-
   // On récupère prochaine la difficulté du pattern recherché
-  exec(`vanitygen.exe -C RVN -t 1 ${pattern}`, { timeout: 100 }, (error, stdout, stderr) => {
+  exec(`vanitygen.exe -C RVN -t 1 ${pattern}`, { timeout: 200 }, (error, stdout, stderr) => {
     isDifficultyFound = false;
-    let lines = stderr.split('\n');
+    var lines = stderr.split('\n');
     for (const line of lines) {
       if (line.startsWith('Difficulty:')) {
         isDifficultyFound = true;
@@ -142,7 +152,7 @@ client.on('messageCreate', message => {
           // Magic Number
         const magicNumber = 5555;
         const randomNumber = Math.floor(Math.random() * 10000); 
-        let messageToSend = `**RTM VanityGen** used **${i} times** *since last bug\nMagic Number is **${magicNumber}** - You got **${randomNumber}**\nCurrent queue size before yours: ${queue.length}\nSearching **'${pattern}'**... Will DM you the address and key when found\n${diff}`;
+        var messageToSend = `**RTM VanityGen** used **${i} times** *since last bug\nMagic Number is **${magicNumber}** - You got **${randomNumber}**\nCurrent queue size before yours: ${queue.length}\nSearching **'${pattern}'**... Will DM you the address and key when found\n${diff}`;
         if (magicNumber === randomNumber) {
           messageToSend += "\n**Yay, you won the Magic Number ! Contact Wizz_^to claim the reward**";
         }  
@@ -151,7 +161,6 @@ client.on('messageCreate', message => {
       }
     }
   });  
-
   
   // Ajoute la commande à la file d'attente
   queue.push({ id: queue.length + 1, message, pattern });
@@ -166,10 +175,12 @@ client.on('messageCreate', message => {
   }
   else if (message.content.toLowerCase().startsWith('/vqueue')) {
     // Si la commande commence par /vqueue, affiche la file d'attente
-    let vqueueString = '';
+    var vqueueString = '';
     // Parcours la file d'attente et crée une chaîne de caractères avec tous les éléments
+    var id = 1;
     for (const item of queue) {
-      vqueueString += `${item.id}: ${item.pattern}\n`;
+      vqueueString += `${id}: ${item.pattern}\n`;
+      id++;
     }
     // Si la file d'attente est vide, affiche un message approprié
     if (vqueueString.length === 0) {
@@ -182,7 +193,7 @@ client.on('messageCreate', message => {
   else if (message.content.toLowerCase().startsWith('/vcancel')) {
     // Récupère le nombre de requêtes à supprimer
     const commandParts = message.content.split(' ');
-    let numRequestsToDelete = 0;
+    var numRequestsToDelete = 0;
     if (commandParts.length > 1) {
       const numString = commandParts[1];
       // Vérifie si la chaîne saisie par l'utilisateur est un nombre
@@ -200,8 +211,8 @@ client.on('messageCreate', message => {
     }
     numRequests = numRequestsToDelete
     // Supprime les requêtes de l'utilisateur de la file d'attente
-    let entryRemoved = false;
-    let countRequests = 0;
+    var entryRemoved = false;
+    var countRequests = 0;
     for (let r = queue.length - 1; r >= 0; r--) {
       if (queue[r].message.author === message.author) {
         if (numRequestsToDelete > 0) {
@@ -245,8 +256,8 @@ client.on('messageCreate', message => {
     }
   }
   else if (message.content.toLowerCase().startsWith('/vme')) {
-    let Count = 0;
-    let listRequests = [];
+    var Count = 0;
+    var listRequests = [];
     for (const requ of queue) {
       if (requ.message.author === message.author) {
         Count++;
@@ -263,6 +274,50 @@ client.on('messageCreate', message => {
       message.reply(`No request from you in queue`);
       return
     }
+  }  
+  else if (message.content.toLowerCase().startsWith('/vtest')) {
+    // Récupère le ou les patterns de la commande
+    const pattern = message.content.slice(7).split(' ')[0];
+    var diffList = [];
+    if (
+      !/^R[9ABCDEFGHJKLMNPQRSTUVWXY][123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{0,32}$/.test(pattern)
+    ) {
+      // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
+      message.reply(`Rules for each pattern:\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
+      return
+    }
+    else if (
+      pattern.length > 8 || pattern.length < 2
+    ) {
+      // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
+      message.reply(`Testing it, but remember, this RTMVanityGen only allows 2 chars min, 8 chars max !`);
+    }
+
+    // Si pattern valide, on récupère prochaine la difficulté du pattern recherché
+    exec(`vanitygen.exe -C RVN -t 1 ${pattern}`, { timeout: 250 }, (error, stdout, stderr) => {
+      isDifficultyFound = false;
+      let lines = stderr.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('Difficulty:')) {
+          isDifficultyFound = true;
+          // Extrait le nombre de la chaîne de caractères
+          const difficultyNumber = line.match(/[0-9]+/)[0];
+          // Calcul le temps attendu
+          const minutes = parseInt(difficultyNumber) / 9000000000;
+          var diff = " ";
+          if (minutes < 1) {
+            diff = `${line.trim()}, expected within a minute`;
+            diffList.push(diff);
+          } else {
+            diff = `${line.trim()}, expected in **${minutes.toFixed(0)}** min on average`;
+            diffList.push(diff);
+          }
+          interruptAndKillVanitygen();
+        }
+      }
+      message.reply(`Testing '${pattern}' - ${diffList}`);
+      diffList = ' ';
+    });
   }  
 });
 
@@ -303,7 +358,7 @@ function processQueue() {
         return;
       } 
       else {
-        let lignes = error.toString().split('\n');
+        var lignes = error.toString().split('\n');
         for (let s = 0; s < lignes.length; s++) {
           let ligne = lignes[s];
           if (ligne.includes("not possible") || ligne.includes("Invalid character")) {
@@ -317,7 +372,7 @@ function processQueue() {
     }
 
     // Si aucune erreur, on récupère la pair générée et la formate
-    let lines = stdout.split('\n');
+    var lines = stdout.split('\n');
     for (let k = 0; k < lines.length; k++) {
       let line = lines[k];
       if (line.startsWith("RVN")) {
@@ -327,8 +382,8 @@ function processQueue() {
     // Récupération adresse et clé privée
     const output = lines.slice(-3).join("\n");
     // Arrêt des compteurs
-    const durationInMinutes = ((Date.now() - startTime) / 60000).toFixed(0);
-    const durationInSeconds = ((Date.now() - startTime) / 1000).toFixed(0);
+    var durationInMinutes = ((Date.now() - startTime) / 60000).toFixed(0);
+    var durationInSeconds = ((Date.now() - startTime) / 1000).toFixed(0);
     while (durationInSeconds >= 60) {
       durationInSeconds -= 60;
     }
@@ -343,8 +398,9 @@ function processQueue() {
     queue.shift();    
     // Décalage de la file vers le haut
     if (queue.length >= 2) {
-      for (let q = 0; q < queue.length; q++) {
-        queue[q].id = q + 1;
+      var q = 1;
+      for (const file of queue) {
+        file.id = q;
       }
     }
     // Démarre la prochaine itération de traitement de la file d'attente
