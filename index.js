@@ -283,7 +283,7 @@ client.on('messageCreate', message => {
       !/^R[9ABCDEFGHJKLMNPQRSTUVWXY][123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{0,32}$/.test(pattern)
     ) {
       // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
-      message.reply(`Rules for each pattern:\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
+      message.reply(`Rules for each pattern:\n- 2 Chars min\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
       return
     }
     else if (
@@ -292,7 +292,6 @@ client.on('messageCreate', message => {
       // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
       message.reply(`Testing it, but remember, this RTMVanityGen only allows 2 chars min, 8 chars max !`);
     }
-
     // Si pattern valide, on récupère prochaine la difficulté du pattern recherché
     exec(`vanitygen.exe -C RVN -t 1 ${pattern}`, { timeout: 250 }, (error, stdout, stderr) => {
       isDifficultyFound = false;
@@ -315,7 +314,8 @@ client.on('messageCreate', message => {
           interruptAndKillVanitygen();
         }
       }
-      message.reply(`Testing '${pattern}' - ${diffList}`);
+      message.reply(`Testing '**${pattern}**'...\n${diffList}`);
+      console.log(`[LOG] User ${message.author.username} tested '${pattern}':\n${diffList}`)
       diffList = ' ';
     });
   }  
