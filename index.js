@@ -279,6 +279,7 @@ client.on('messageCreate', message => {
     // Récupère le ou les patterns de la commande
     const pattern = message.content.slice(7).split(' ')[0];
     var diffList = [];
+    var messageToSend = '';
     if (
       !/^R[9ABCDEFGHJKLMNPQRSTUVWXY][123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{0,32}$/.test(pattern)
     ) {
@@ -290,7 +291,7 @@ client.on('messageCreate', message => {
       pattern.length > 8 || pattern.length < 2
     ) {
       // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
-      message.reply(`Testing it, but remember, this RTMVanityGen only allows 2 chars min, 8 chars max !`);
+      var messageToSend = `Testing it, but remember, this RTMVanityGen only allows 2 chars min, 8 chars max !\n`;
     }
     // Si pattern valide, on récupère prochaine la difficulté du pattern recherché
     exec(`vanitygen.exe -C RVN -t 1 ${pattern}`, { timeout: 250 }, (error, stdout, stderr) => {
@@ -314,8 +315,9 @@ client.on('messageCreate', message => {
           interruptAndKillVanitygen();
         }
       }
-      message.reply(`Testing '**${pattern}**'...\n${diffList}`);
-      console.log(`[LOG] User ${message.author.username} tested '${pattern}':\n${diffList}`)
+      messageToSend += `Testing '**${pattern}**'...\n${diffList}`;
+      message.reply(messageToSend);
+      console.log(`[LOG] User ${message.author.username} tested '${pattern}':\n${diffList}`);
       diffList = ' ';
     });
   }  
