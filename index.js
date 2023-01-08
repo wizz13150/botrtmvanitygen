@@ -253,7 +253,7 @@ client.on('messageCreate', message => {
   // Commande pour voir le job en cours
   else if (message.content.toLowerCase().startsWith('/vcurrent')) {
     if (queue.length > 0) {
-      message.reply(`The current search is '${queue[0].pattern}' by **${message.author.username}**`);
+      message.reply(`The current search is '${queue[0].pattern}' by **${queue[0].message.author.username}**`);
     } else {
       message.reply(`There is no current pattern being searched`);
     }
