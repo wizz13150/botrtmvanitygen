@@ -39,6 +39,48 @@ client.once(Events.ClientReady, () => {
 })
 
 
+// Fonction pour lire le nombre de patterns stockés voulus
+function getVanityHistory(numPatterns) {
+  // Default to 25 patterns if no number specified
+  if (!numPatterns) {
+    numPatterns = 26;
+  }
+  // Read patterns.txt file
+  const patterns = fs.readFileSync('patterns.txt', 'utf8').split('\n');
+  // Return specified number of patterns from end of array
+  return patterns.slice(0, numPatterns);
+}
+
+
+// Fonction pour garder les 100 derniers patterns du fichiers 
+function trimPatternsFile(pattern) {
+  // Lire le contenu du fichier 'patterns.txt' et le séparer en lignes
+  const lines = fs.readFileSync('patterns.txt', 'utf8').split('\n');
+  let newLines = [];
+  let patternCounter = 1;
+  // Si le fichier a plus de 100 lignes, supprime la dernière ligne et décale les numéros
+  if (lines.length > 100) {
+    for (let v = 0; v < lines.length; v++) {
+      if (v < 99) {
+        newLines.unshift(`${patternCounter}: ${lines[v].trim().slice(3)}`);
+        patternCounter++;
+      }
+    }
+  }
+  // Si le fichier a moins de 100 lignes, ajoute simplement les lignes et incrémente le compteur
+  else {
+    for (const line of lines) {
+      newLines.unshift(`${patternCounter}: ${line.trim().slice(3)}`);
+      patternCounter++;
+    }
+  }
+  // Ajouter le nouveau pattern au début de la liste
+  newLines.unshift(`${patternCounter}: ${pattern.trim()}`);
+  // Écrire les lignes modifiées dans le fichier
+  fs.writeFileSync('patterns.txt', newLines.join('\n'), 'utf8');
+}
+
+
 // Fonction qui kill les process "oclvanitygen" fantomes
 function interruptAndKillProcess() {
   exec('tasklist /FI "IMAGENAME eq oclvanitygen.exe"', (err, stdout) => {
@@ -93,11 +135,17 @@ function checkGhosts() {
 // Démarre la vérification de la file d'attente toutes les 10 secondes
 setInterval(checkGhosts, 30000);
 
+// Lock commande, une par une. Evite porblème id queue ???
+let commandLock = false;
 
 // Quand un message est envoyé sur le serveur Discord
 client.on('messageCreate', message => {
+  // Exit sur commandLock
+  if (commandLock) return;
   // Si le message ne vient pas d'un bot et qu'il commence par /vanity
   if (!message.author.bot && message.content.toLowerCase().startsWith('/vanity')) {
+    // On lock la commande
+    commandLock = true;
     // Incrémente le compteur de lancements de VanityGen
     i++;
     writeI(i);
@@ -109,7 +157,7 @@ client.on('messageCreate', message => {
         vanityCount++;
       }
       if (vanityCount >= 10) {
-        message.reply(`Already 10 requests, fuck off. Try later ((:`)
+        message.reply(`Already 10 requests, fuck off. Try later ((:`);
         return;
       }
     }
@@ -126,9 +174,13 @@ client.on('messageCreate', message => {
       ) {
         // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
         message.reply(`Rules for each pattern:\n- 2 chars min, 8 chars max !\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
+        // On délock la commande
+        commandLock = false;
         return;
       }
     }  
+    // Ajoute le pattern au fichier patterns.txt et trim le fichier
+    trimPatternsFile(pattern)
     // Si okay, on génère l'addresse
     console.log(`[LOG] User ${message.author.username} searched ${pattern}`);
     // On récupère prochaine la difficulté du pattern recherché
@@ -158,6 +210,8 @@ client.on('messageCreate', message => {
           message.reply(messageToSend);
           // Ajoute la commande à la file d'attente
           queue.push({ id: queue.length + 1, message, pattern, duration: minutes });
+          // On délock la commande
+          commandLock = false;
           interruptAndKillVanitygen();
         }
       }
@@ -320,6 +374,45 @@ client.on('messageCreate', message => {
       diffList = ' ';
     });
   }  
+  if (!message.author.bot && message.content.toLowerCase().startsWith('/vhelp')) {
+    // Create help message
+    const helpMessage = `
+    Hey!\nI'm RTMVanityGen Bot that can generate vanity addresses for Raptoreum (RTM).\nHere are the commands you can use:
+    
+    **/vanity [pattern1] [pattern2]**:\nThis command allows you to add a new vanity address pattern, or several, to the queue.\n- Each pattern must be between 2 chars and 8 chars max, and must start with "R".\n- The second character must not be one of the following: 0, 1, 2, 3, 4, 5, 6, 7, 8, Z.\n- Each pattern can only contain the following characters:\n'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.
+
+    **/vtest [pattern]**:\nThis command allows you to test the difficulty of a vanity address pattern and see the expected time to process.
+    **/vqueue**:\nThis command shows you the current state of the vanity address queue.
+    **/vcancel [number]**:\nThis command allows you to remove the last request, or several, from the queue.
+    **/vcurrent**:\nThis command shows you the current vanity address pattern that is being searched.
+    **/vme**:\nThis command shows you the vanity address patterns that you have added to the queue.
+    **/vhistory [number]**:\nThis command shows you the last request from others. Default is 25, Max is 100.
+    **/vhelp**:\nInception. Abort.
+
+    The Magic Number is a random number between 0 and 9999 generated every /vanity command.\nGet the Magic Number, and contact Wizz_^ to claim your reward!
+
+    Thanks for using my bot!
+    `;
+    
+    // Send help message
+    message.reply(helpMessage);
+  }
+  if (!message.author.bot && message.content.toLowerCase().startsWith('/vhistory')) {
+    // Get number of patterns to retrieve from history
+    const numPatterns = message.content.slice(10);   
+    // Get history of patterns
+    const history = getVanityHistory(numPatterns);    
+    // Check if history exists
+    if (history.length === 0) {
+      message.channel.send('There is no history of vanity address patterns.');
+      return;
+    }    
+    // Create history message
+    const historyMessage = `History of the last ${history.length} patterns searched by users:\n${history.join('\n')}
+    `;    
+    // Send history message
+    message.reply(historyMessage);
+  }
 });
 
 
@@ -354,8 +447,8 @@ function processQueue() {
             file.id = q;
           }
         }
+        // Kill et suivant
         interruptAndKillProcess()
-        // Démarre la prochaine itération de traitement de la file d'attente
         processQueue();
         return;
       } 
@@ -369,6 +462,7 @@ function processQueue() {
           }
         }
       } 
+      // Suivant
       processQueue();
       return;  
     }
