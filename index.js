@@ -143,11 +143,12 @@ client.on('messageCreate', message => {
         // Extrait le nombre de la chaîne de caractères
         const difficultyNumber = line.match(/[0-9]+/)[0];
         // Calcul le temps attendu
-        const minutes = parseInt(difficultyNumber) / 9000000000;
+        var minutes = parseInt(difficultyNumber) / 9000000000;
+        var minutes = minutes.toFixed(0);
         if (minutes < 1) {
           diff = `${line.trim()}, expected within a minute`;
         } else {
-          diff = `${line.trim()}, expected in **${minutes.toFixed(0)}** min on average`;
+          diff = `${line.trim()}, expected in **${minutes}** min on average`;
         }
           // Magic Number
         const magicNumber = 5555;
@@ -157,13 +158,13 @@ client.on('messageCreate', message => {
           messageToSend += "\n**Yay, you won the Magic Number ! Contact Wizz_^to claim the reward**";
         }  
         message.reply(messageToSend);
+        // Ajoute la commande à la file d'attente
+        queue.push({ id: queue.length + 1, message, pattern, duration: minutes });
         interruptAndKillVanitygen()
       }
     }
   });  
   
-  // Ajoute la commande à la file d'attente
-  queue.push({ id: queue.length + 1, message, pattern });
   // Démarre la prochaine itération de traitement de la file d'attente
   if (queue.length === 0 || queue.isProcessing) {
     return;
@@ -178,16 +179,18 @@ client.on('messageCreate', message => {
     var vqueueString = '';
     // Parcours la file d'attente et crée une chaîne de caractères avec tous les éléments
     var id = 1;
+    let totalDuration = 0;
     for (const item of queue) {
-      vqueueString += `${id}: ${item.pattern}\n`;
+      vqueueString += `${id}: ${item.pattern} - Expected time: **${item.duration}** min to process\n`;
+      totalDuration += parseInt(item.duration);
       id++;
     }
     // Si la file d'attente est vide, affiche un message approprié
     if (vqueueString.length === 0) {
-      vqueueString = 'Queue is empty';
+      vqueueString = 'Queue is empty\n';
     }
     // Envoie la chaîne de caractères créée au demandeur
-    message.reply(`${vqueueString}`);
+    message.reply(`${vqueueString}Total queue expected duration: **${totalDuration}** minutes`);
   }
   // Commande pour supprimer son dernier job de la file d'attente
   else if (message.content.toLowerCase().startsWith('/vcancel')) {
@@ -263,8 +266,7 @@ client.on('messageCreate', message => {
         Count++;
         listRequests.push({ num: requ.id, val: requ.pattern });
       }    
-    } 
-  
+    }   
     if (Count > 0) {
       const formattedList = listRequests.map(request => `${request.num}: ${request.val}`);
       message.reply(`You have ${Count} requests in queue :\n${formattedList.join('\n')}`);
