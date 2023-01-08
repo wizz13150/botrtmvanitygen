@@ -190,7 +190,7 @@ client.on('messageCreate', message => {
         numRequestsToDelete = parseInt(numString);
       } else {
         // Si la chaîne n'est pas un nombre, on considère que l'utilisateur veut supprimer sa dernière requête
-        message.reply(`Huh, put a number in here buddy... omg these humans...I'm coming for you John Connor`)
+        message.reply(`Huh, put a number in here buddy... omg these humans... I'm coming for you John Connor`)
         numRequestsToDelete = 0;
         humans = 1;
       }
@@ -231,7 +231,7 @@ client.on('messageCreate', message => {
       if (numRequests > 1) {
         message.reply(`${countRequests} requests deleted from queue`);
       } else {
-        message.reply(`Request for ${userpattern} deleted from queue`);
+        message.reply(`Request for '**${userpattern}**' deleted from queue`);
       }
     }
   }
@@ -244,28 +244,26 @@ client.on('messageCreate', message => {
       message.reply(`There is no current pattern being searched`);
     }
   }
-  else if (message.content.toLowerCase().startsWith('/vquota')) {
+  else if (message.content.toLowerCase().startsWith('/vme')) {
     let Count = 0;
-    const authorId = message.author;
-    console.log(`authorId ${authorId}`);
-    for (const queuedMessage of queue) {
-      console.log(`queuedMessage.message.author ${queuedMessage.message.author}`);
-      if (queuedMessage.message.author === authorId) {
+    let listRequests = [];
+    for (const requ of queue) {
+      if (requ.message.author === message.author) {
         Count++;
-        console.log(Count);
-        return
+        listRequests.push({ num: requ.id, val: requ.pattern });
       }    
     } 
-    if (Count === 0) {
-      message.reply(`You have ${Count} requests in queue :\nToDo`);
-      console.log(Count);
+  
+    if (Count > 0) {
+      const formattedList = listRequests.map(request => `${request.num}: ${request.val}`);
+      message.reply(`You have ${Count} requests in queue :\n${formattedList.join('\n')}`);
       return
     }
     else {
       message.reply(`No request from you in queue`);
       return
     }
-  }
+  }  
 });
 
 
@@ -286,22 +284,36 @@ function processQueue() {
   const userPattern = item.pattern;
   const user = message.author;
 
-  // Lancement d'oclvanitygen
-  exec(`oclvanitygen.exe -C RVN -D 0:0 -D 0:1 -F compressed ${userPattern}`, (error, stdout) => {    
+  // Lancement d'oclvanitygen, timeout 6h = 21600000, 12h = 43200000, 24h = 86400000
+  exec(`oclvanitygen.exe -C RVN -D 0:0 -D 0:1 -F compressed ${userPattern}`, { timeout: 21600000, killSignal: 'SIGTERM' }, (error, stdout) => {    
     if (error) {
-      let lignes = error.toString().split('\n');
-      for (let s = 0; s < lignes.length; s++) {
-        const ligne = lignes[s];
-        if (ligne.includes("not possible") || ligne.includes("Invalid character")) {
-          message.reply(`Research aborted, oclvanitygen output:\n${ligne}`);
-          console.log(`Research for '${userPattern}' aborted\n${ligne}`);
+      if (error.signal === 'SIGTERM') {
+        message.reply(`Research for '${userPattern}' aborted, 24h timeout reached`);
+        // Supprime l'élément traité de la file d'attente
+        queue.shift();
+        // Décalage de la file vers le haut
+        if (queue.length >= 2) {
+          for (let q = 0; q < queue.length; q++) {
+            queue[q].id = q + 1;
+          }
         }
-      }
-      // Supprime l'élément traité de la file d'attente
-      queue.shift();
-      // Démarre la prochaine itération de traitement de la file d'attente
+        interruptAndKillProcess()
+        // Démarre la prochaine itération de traitement de la file d'attente
+        processQueue();
+        return;
+      } 
+      else {
+        let lignes = error.toString().split('\n');
+        for (let s = 0; s < lignes.length; s++) {
+          let ligne = lignes[s];
+          if (ligne.includes("not possible") || ligne.includes("Invalid character")) {
+            message.reply(`Research aborted, oclvanitygen output:\n${ligne}`);
+            console.log(`Research for '${userPattern}' aborted\n${ligne}`);
+          }
+        }
+      } 
       processQueue();
-      return;
+      return;  
     }
 
     // Si aucune erreur, on récupère la pair générée et la formate
@@ -330,7 +342,7 @@ function processQueue() {
     // Supprime l'élément traité de la file d'attente
     queue.shift();    
     // Décalage de la file vers le haut
-    if (queue.length > 2) {
+    if (queue.length >= 2) {
       for (let q = 0; q < queue.length; q++) {
         queue[q].id = q + 1;
       }
