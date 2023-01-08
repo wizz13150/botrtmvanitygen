@@ -128,51 +128,49 @@ client.on('messageCreate', message => {
         message.reply(`Rules for each pattern:\n- 2 chars min, 8 chars max !\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
         return;
       }
-    }
-  
-  // Si okay, on génère l'addresse
-  console.log(`[LOG] User ${message.author.username} searched ${pattern}`);
-
-  // On récupère prochaine la difficulté du pattern recherché
-  exec(`vanitygen.exe -C RVN -t 1 ${pattern}`, { timeout: 200 }, (error, stdout, stderr) => {
-    isDifficultyFound = false;
-    var lines = stderr.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('Difficulty:')) {
-        isDifficultyFound = true;
-        // Extrait le nombre de la chaîne de caractères
-        const difficultyNumber = line.match(/[0-9]+/)[0];
-        // Calcul le temps attendu
-        var minutes = parseInt(difficultyNumber) / 9000000000;
-        var minutes = minutes.toFixed(0);
-        if (minutes < 1) {
-          diff = `${line.trim()}, expected within a minute`;
-        } else {
-          diff = `${line.trim()}, expected in **${minutes}** min on average`;
+      console.log(`${word} OKAY`)
+    }  
+    // Si okay, on génère l'addresse
+    console.log(`[LOG] User ${message.author.username} searched ${pattern}`);
+    // On récupère prochaine la difficulté du pattern recherché
+    exec(`vanitygen.exe -C RVN -t 1 ${pattern}`, { timeout: 200 }, (error, stdout, stderr) => {
+      isDifficultyFound = false;
+      var lines = stderr.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('Difficulty:') || line.startsWith('Next match difficulty:')) {
+          isDifficultyFound = true;
+          // Extrait le nombre de la chaîne de caractères
+          const difficultyNumber = line.match(/[0-9]+/)[0];
+          // Calcul le temps attendu
+          var minutes = parseInt(difficultyNumber) / 9000000000;
+          var minutes = minutes.toFixed(0);
+          if (minutes < 1) {
+            diff = `${line.trim()}, expected within a minute`;
+          } else {
+            diff = `${line.trim()}, expected in **${minutes}** min on average`;
+          }
+            // Magic Number
+          const magicNumber = 5555;
+          const randomNumber = Math.floor(Math.random() * 10000); 
+          var messageToSend = `**RTM VanityGen** used **${i} times** *since last bug\nMagic Number is **${magicNumber}** - You got **${randomNumber}**\nCurrent queue size before yours: ${queue.length}\nSearching **'${pattern}'**... Will DM you the address and key when found\n${diff}`;
+          if (magicNumber === randomNumber) {
+            messageToSend += "\n**Yay, you won the Magic Number ! Contact Wizz_^to claim the reward**";
+          }  
+          message.reply(messageToSend);
+          // Ajoute la commande à la file d'attente
+          queue.push({ id: queue.length + 1, message, pattern, duration: minutes });
+          interruptAndKillVanitygen();
         }
-          // Magic Number
-        const magicNumber = 5555;
-        const randomNumber = Math.floor(Math.random() * 10000); 
-        var messageToSend = `**RTM VanityGen** used **${i} times** *since last bug\nMagic Number is **${magicNumber}** - You got **${randomNumber}**\nCurrent queue size before yours: ${queue.length}\nSearching **'${pattern}'**... Will DM you the address and key when found\n${diff}`;
-        if (magicNumber === randomNumber) {
-          messageToSend += "\n**Yay, you won the Magic Number ! Contact Wizz_^to claim the reward**";
-        }  
-        message.reply(messageToSend);
-        // Ajoute la commande à la file d'attente
-        queue.push({ id: queue.length + 1, message, pattern, duration: minutes });
-        interruptAndKillVanitygen();
       }
+    });    
+    // Démarre la prochaine itération de traitement de la file d'attente
+    if (queue.length === 0 || queue.isProcessing) {
+      return;
     }
-  });  
-  
-  // Démarre la prochaine itération de traitement de la file d'attente
-  if (queue.length === 0 || queue.isProcessing) {
+    // Lancement itération
+    queue.isProcessing = true;
+    processQueue();
     return;
-  }
-  // Lancement itération
-  queue.isProcessing = true;
-  processQueue();
-  return;
   }
   else if (message.content.toLowerCase().startsWith('/vqueue')) {
     // Si la commande commence par /vqueue, affiche la file d'attente
