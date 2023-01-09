@@ -43,7 +43,7 @@ client.once(Events.ClientReady, () => {
 function getVanityHistory(numPatterns) {
   // Default to 25 patterns if no number specified
   if (!numPatterns) {
-    numPatterns = 26;
+    numPatterns = 25;
   }
   // Read patterns.txt file
   const patterns = fs.readFileSync('patterns.txt', 'utf8').split('\n');
@@ -52,32 +52,16 @@ function getVanityHistory(numPatterns) {
 }
 
 
-// Fonction pour garder les 100 derniers patterns du fichiers 
-function trimPatternsFile(pattern) {
-  // Lire le contenu du fichier 'patterns.txt' et le séparer en lignes
+// Fonction ajout pattern à l'historique et trim, garde last 100
+function trimPatternsFile(pattern, message) {
+  // Ajout
+  const data = fs.readFileSync('patterns.txt', 'utf8');
+  const newData = pattern + ' - by ' + message.author.username + '\n' + data;
+  fs.writeFileSync('patterns.txt', newData, 'utf8');
+  // Trim
   const lines = fs.readFileSync('patterns.txt', 'utf8').split('\n');
-  let newLines = [];
-  let patternCounter = 1;
-  // Si le fichier a plus de 100 lignes, supprime la dernière ligne et décale les numéros
-  if (lines.length > 100) {
-    for (let v = 0; v < lines.length; v++) {
-      if (v < 99) {
-        newLines.unshift(`${patternCounter}: ${lines[v].trim().slice(3)}`);
-        patternCounter++;
-      }
-    }
-  }
-  // Si le fichier a moins de 100 lignes, ajoute simplement les lignes et incrémente le compteur
-  else {
-    for (const line of lines) {
-      newLines.unshift(`${patternCounter}: ${line.trim().slice(3)}`);
-      patternCounter++;
-    }
-  }
-  // Ajouter le nouveau pattern au début de la liste
-  newLines.unshift(`${patternCounter}: ${pattern.trim()}`);
-  // Écrire les lignes modifiées dans le fichier
-  fs.writeFileSync('patterns.txt', newLines.join('\n'), 'utf8');
+  const trimmedLines = lines.slice(0, 100);
+  fs.writeFileSync('patterns.txt', trimmedLines.join('\n'), 'utf8');
 }
 
 
@@ -135,17 +119,11 @@ function checkGhosts() {
 // Démarre la vérification de la file d'attente toutes les 10 secondes
 setInterval(checkGhosts, 30000);
 
-// Lock commande, une par une. Evite porblème id queue ???
-let commandLock = false;
 
 // Quand un message est envoyé sur le serveur Discord
 client.on('messageCreate', message => {
-  // Exit sur commandLock
-  if (commandLock) return;
   // Si le message ne vient pas d'un bot et qu'il commence par /vanity
   if (!message.author.bot && message.content.toLowerCase().startsWith('/vanity')) {
-    // On lock la commande
-    commandLock = true;
     // Incrémente le compteur de lancements de VanityGen
     i++;
     writeI(i);
@@ -174,13 +152,11 @@ client.on('messageCreate', message => {
       ) {
         // Si le mot ne respecte pas les critères, affiche l'erreur et les règles
         message.reply(`Rules for each pattern:\n- 2 chars min, 8 chars max !\n- First char must be "R".\n- Second char refused: 012345678Z and lowercase.\n- Third char -ToDo-...\n- Alphabet: "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".\nSo not: "0IOl"`);
-        // On délock la commande
-        commandLock = false;
         return;
       }
     }  
     // Ajoute le pattern au fichier patterns.txt et trim le fichier
-    trimPatternsFile(pattern)
+    trimPatternsFile(pattern, message)
     // Si okay, on génère l'addresse
     console.log(`[LOG] User ${message.author.username} searched ${pattern}`);
     // On récupère prochaine la difficulté du pattern recherché
