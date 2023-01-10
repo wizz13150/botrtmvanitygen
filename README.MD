@@ -11,6 +11,7 @@ This command allows you to add a new vanity address pattern, or several, to the 
 - Each pattern can only contain the following characters:
 '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.
 
+
     /vtest [pattern]
     
 This command allows you to test the difficulty of a vanity address pattern and see the expected time to process.
@@ -23,7 +24,7 @@ This command shows you the current state of the vanity address queue.
 
     /vcancel [number]
     
-This command allows you to remove the last request, or several, from the queue.
+This command allows you to remove the last request, or several, from the queue. Default is 1.
 
 
     /vcurrent
