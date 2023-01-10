@@ -10,18 +10,37 @@ This command allows you to add a new vanity address pattern, or several, to the 
 '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.
 
     /vtest [pattern]:
+    
 This command allows you to test the difficulty of a vanity address pattern and see the expected time to process.
+
+
     /vqueue:
+    
 This command shows you the current state of the vanity address queue.
+
+
     /vcancel [number]:
+    
 This command allows you to remove the last request, or several, from the queue.
+
+
     /vcurrent:
+    
 This command shows you the current vanity address pattern that is being searched.
+
+
     /vme:
+    
 This command shows you the vanity address patterns that you have added to the queue.
+
+
     /vhistory [number]:
+    
 This command shows you the last request from others. Default is 25, Max is 100.
+
+
     /vhelp:
+    
 Inception. Abort.
 
     The Magic Number is a random number between 0 and 9999 generated every /vanity command.
