@@ -1,7 +1,7 @@
 // Classes discord.js nécessaires
 const { Client, Events, GatewayIntentBits, Partials } = require('discord.js');
 const { token } = require('./config.json');
-const { exec, spawn } = require('child_process');
+const { exec } = require('child_process');
 const fs = require('fs');
 
 function readI() {
