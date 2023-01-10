@@ -26,7 +26,7 @@ const client = new Client({
               GatewayIntentBits.MessageContent, 
               GatewayIntentBits.GuildMembers
           ],
-        partials: [
+          partials: [
               Partials.Channel,
               Partials.Message
           ] 
@@ -189,17 +189,17 @@ client.on('messageCreate', message => {
           // On délock la commande
           commandLock = false;
           interruptAndKillVanitygen();
+          // Démarre la prochaine itération de traitement de la file d'attente
+          if (queue.length === 0 || queue.isProcessing) {
+            return;
+          }
+          // Lancement itération
+          queue.isProcessing = true;
+          processQueue();
+          return;
         }
       }
     });    
-    // Démarre la prochaine itération de traitement de la file d'attente
-    if (queue.length === 0 || queue.isProcessing) {
-      return;
-    }
-    // Lancement itération
-    queue.isProcessing = true;
-    processQueue();
-    return;
   }
   else if (message.content.toLowerCase().startsWith('/vqueue')) {
     // Si la commande commence par /vqueue, affiche la file d'attente
