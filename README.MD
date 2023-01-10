@@ -1,4 +1,5 @@
 Hey!
+
 I'm RTMVanityGen Bot that can generate vanity addresses for Raptoreum (RTM).
 Here are the commands you can use:
 
