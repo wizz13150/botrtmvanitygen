@@ -45,7 +45,9 @@ This command shows you the last request from others. Default is 25, Max is 100.
     
 Inception. Abort.
 
+
 The Magic Number is a random number between 0 and 9999 generated every /vanity command.
 Get the Magic Number, and contact Wizz_^ to claim your reward!
+
 
    Thanks for using my bot!
